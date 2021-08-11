@@ -1,3 +1,5 @@
+use rand::rngs::ThreadRng;
+use rand::Rng;
 use std::fmt::Formatter;
 use std::ops;
 use std::ops::Div;
@@ -10,6 +12,22 @@ pub struct Vec3 {
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Vec3 { data: [x, y, z] }
+    }
+
+    pub fn rand(rng: &mut ThreadRng) -> Self {
+        Vec3 {
+            data: [rng.gen(), rng.gen(), rng.gen()],
+        }
+    }
+
+    pub fn rand_range(rng: &mut ThreadRng, min: f64, max: f64) -> Self {
+        Vec3 {
+            data: [
+                rng.gen_range(min..max),
+                rng.gen_range(min..max),
+                rng.gen_range(min..max),
+            ],
+        }
     }
 
     pub fn x(&self) -> f64 {
@@ -46,6 +64,14 @@ impl Vec3 {
 
     pub fn unit_vector(&self) -> Vec3 {
         self.div(self.length())
+    }
+}
+
+impl Default for Vec3 {
+    fn default() -> Self {
+        Vec3 {
+            data: [0.0, 0.0, 0.0],
+        }
     }
 }
 
@@ -121,3 +147,25 @@ impl ops::Index<usize> for Vec3 {
 
 pub type Point3 = Vec3;
 pub type Color = Vec3;
+
+pub fn random_in_unit_sphere(rng: &mut ThreadRng) -> Vec3 {
+    loop {
+        let p = Vec3::rand_range(rng, -1.0, 1.0);
+        if p.length_squared() < 1.0 {
+            return p;
+        }
+    }
+}
+
+pub fn random_unit_vector(rng: &mut ThreadRng) -> Vec3 {
+    random_in_unit_sphere(rng).unit_vector()
+}
+
+pub fn random_in_hemisphere(rng: &mut ThreadRng, normal: Vec3) -> Vec3 {
+    let in_unit_sphere = random_in_unit_sphere(rng);
+    if in_unit_sphere.dot(normal) > 0.0 {
+        in_unit_sphere
+    } else {
+        -in_unit_sphere
+    }
+}
