@@ -13,10 +13,11 @@ use objects::sphere::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use ray::*;
+use rayon::prelude::*;
 use utils::*;
 use vector::*;
 
-fn write_color(pixel_color: Color, sample_per_pixel: usize) {
+fn write_color(pixel_color: &Color, sample_per_pixel: usize) {
     let scale = 1.0 / (sample_per_pixel as f64);
 
     let r = clamp((pixel_color.x() * scale).sqrt(), 0.0, 0.999) * 256.0;
@@ -49,12 +50,11 @@ fn ray_color(rng: &mut ThreadRng, ray: Ray, world: &HittableList, depth: usize) 
 }
 
 fn main() {
-    let mut rng = rand::thread_rng();
     // Image
     const ASPECT_RATIO: f64 = 16.0 / 9.0;
     const IMAGE_WIDTH: usize = 400;
     const IMAGE_HEIGHT: usize = ((IMAGE_WIDTH as f64) / ASPECT_RATIO) as usize;
-    const SAMPLE_PER_PIXEL: usize = 100;
+    const SAMPLE_PER_PIXEL: usize = 10;
     const MAX_DEPTH: usize = 50;
 
     // World
@@ -71,27 +71,33 @@ fn main() {
     // Camera
     let camera = Camera::new();
 
+    let number_of_pixels = IMAGE_WIDTH * IMAGE_HEIGHT;
+
+    let pixels = (0..number_of_pixels)
+        .into_par_iter()
+        .map(|index| {
+            let index = number_of_pixels - index;
+            let i = (index % IMAGE_WIDTH) as f64;
+            let j = (index / IMAGE_WIDTH) as f64;
+            let mut rng = rand::thread_rng();
+            let mut pixel_color = Color::default();
+            for _ in 0..SAMPLE_PER_PIXEL {
+                let u = (i + rng.gen::<f64>()) / ((IMAGE_WIDTH - 1) as f64);
+                let v = (j + rng.gen::<f64>()) / ((IMAGE_HEIGHT - 1) as f64);
+                let ray = camera.get_ray(u, v);
+                pixel_color = pixel_color + ray_color(&mut rng, ray, &world, MAX_DEPTH);
+            }
+            pixel_color
+        })
+        .collect::<Vec<Color>>();
+
     println!("P3");
     println!("{} {}", IMAGE_WIDTH, IMAGE_HEIGHT);
     println!("256");
 
-    for j in (0..IMAGE_HEIGHT).rev() {
-        eprint!(
-            "\rScanlines remaining: {:0>3} - {:0>3}%",
-            j,
-            (100.0 / (IMAGE_HEIGHT as f64) * ((IMAGE_HEIGHT - j) as f64)).round()
-        );
-        for i in 0..IMAGE_WIDTH {
-            let mut pixel_color = Color::default();
-            for _ in 0..SAMPLE_PER_PIXEL {
-                let u = ((i as f64) + rng.gen::<f64>()) / ((IMAGE_WIDTH - 1) as f64);
-                let v = ((j as f64) + rng.gen::<f64>()) / ((IMAGE_HEIGHT - 1) as f64);
-                let ray = camera.get_ray(u, v);
-                pixel_color = pixel_color + ray_color(&mut rng, ray, &world, MAX_DEPTH);
-            }
+    pixels.iter().for_each(|&pixel| {
+        write_color(&pixel, SAMPLE_PER_PIXEL);
+    });
 
-            write_color(pixel_color, SAMPLE_PER_PIXEL);
-        }
-    }
     eprintln!("\nDone");
 }

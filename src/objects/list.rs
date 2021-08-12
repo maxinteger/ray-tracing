@@ -37,3 +37,6 @@ impl Hittable for HittableList {
         hit_anything
     }
 }
+
+unsafe impl Send for HittableList {}
+unsafe impl Sync for HittableList {}
