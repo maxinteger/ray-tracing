@@ -1,5 +1,5 @@
 use crate::hit_record::*;
-use crate::objects::hittable::Hittable;
+use crate::objects::base::Hittable;
 use crate::ray::*;
 
 pub struct HittableList {

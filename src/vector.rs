@@ -4,6 +4,8 @@ use std::fmt::Formatter;
 use std::ops;
 use std::ops::Div;
 
+const NEAR_ZERO: f64 = 1e-8;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Vec3 {
     data: [f64; 3],
@@ -64,6 +66,10 @@ impl Vec3 {
 
     pub fn unit_vector(&self) -> Vec3 {
         self.div(self.length())
+    }
+
+    pub fn near_zero(&self) -> bool {
+        self.data[0].lt(&NEAR_ZERO) && self.data[1].lt(&NEAR_ZERO) && self.data[2].lt(&NEAR_ZERO)
     }
 }
 
@@ -168,4 +174,8 @@ pub fn random_in_hemisphere(rng: &mut ThreadRng, normal: Vec3) -> Vec3 {
     } else {
         -in_unit_sphere
     }
+}
+
+pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+    v - 2.0 * v.dot(n) * n
 }

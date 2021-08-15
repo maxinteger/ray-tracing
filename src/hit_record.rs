@@ -1,10 +1,14 @@
+use crate::material::base::*;
 use crate::ray::*;
 use crate::vector::*;
+use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct HitRecord {
     pub t: f64,
     pub point: Point3,
     pub normal: Vec3,
+    pub material: Option<Arc<dyn Material>>,
 }
 
 impl HitRecord {
@@ -13,6 +17,7 @@ impl HitRecord {
             point: Point3::default(),
             normal: Vec3::default(),
             t: 0.0,
+            material: None,
         }
     }
 
@@ -29,5 +34,6 @@ impl HitRecord {
         self.t = other.t;
         self.point = other.point;
         self.normal = other.normal;
+        self.material = Some(Arc::clone(other.material.as_ref().unwrap()));
     }
 }
